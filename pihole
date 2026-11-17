@@ -1,0 +1,24 @@
+pihole/docker-compose.yml:
+
+services:
+  pihole:
+    container_name: pihole
+    image: pihole/pihole:latest
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+      - "8081:80/tcp"
+    environment:
+      TZ: ${TZ:-America/Chicago}
+      FTLCONF_webserver_api_password: ${PIHOLE_PASSWORD}
+      FTLCONF_dns_listeningMode: 'all'
+    volumes:
+      - './etc-pihole:/etc/pihole'
+    cap_add:
+      - NET_ADMIN
+    restart: unless-stopped
+
+pihole/.env.example:
+
+TZ=America/Chicago
+PIHOLE_PASSWORD=change_me_to_a_strong_password

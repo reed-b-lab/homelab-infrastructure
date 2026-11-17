@@ -1,0 +1,58 @@
+virtualization/isolated-lab-net.xml:
+
+<network>
+  <name>isolated-lab</name>
+  <bridge name="virbr1" stp="on" delay="0"/>
+  <ip address="10.10.10.1" netmask="255.255.255.0">
+    <dhcp>
+      <range start="10.10.10.100" end="10.10.10.200"/>
+    </dhcp>
+  </ip>
+</network>
+
+virtualization/kvm-lab-guide.md:
+
+# KVM / Libvirt Virtualization Lab
+
+## Remote Management (`virt-manager` & `virt-viewer`)
+
+Manage the headless KVM server securely from a Linux workstation over SSH without exposing libvirt TCP ports:
+
+```bash
+# Connect virt-manager to the remote hypervisor
+virt-manager -c qemu+ssh://<user>@<server-ip>/system
+
+# Open a standalone SPICE console directly to a specific VM
+virt-viewer -c qemu+ssh://<user>@<server-ip>/system <vm-name>
+```
+
+## Guest Integration (SPICE Clipboard & Display)
+
+* **Linux Guests (Ubuntu / Kali):**
+  ```bash
+  sudo apt update && sudo apt install -y spice-vdagent
+  sudo systemctl enable --now spice-vdagent
+  ```
+* **Windows 11 Guest:** Install `spice-guest-tools` for VirtIO display scaling and SPICE clipboard integration.
+
+## Isolated Lab Network (`virbr1`)
+
+Define and start the isolated internal lab network so VMs (**Windows 11**, **Kali Linux**, **Ubuntu**) can communicate with each other without exposing lab traffic to the main LAN:
+
+```bash
+sudo virsh net-define isolated-lab-net.xml
+sudo virsh net-start isolated-lab
+sudo virsh net-autostart isolated-lab
+```
+
+## Snapshot Workflow for Break/Fix Testing
+
+Before modifying bootloaders (`/etc/fstab`, GRUB), firewall rules, or running security labs:
+
+```bash
+# Create a clean snapshot
+sudo virsh snapshot-create-as <vm-name> clean-state
+
+# Roll back if needed
+sudo virsh snapshot-revert <vm-name> clean-state
+```

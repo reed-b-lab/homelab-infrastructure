@@ -1,1 +1,72 @@
+media-stack/docker-compose.yml:
+services:
+  gluetun:
+    image: qmcgaw/gluetun:latest
+    container_name: gluetun
+    init: true
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    security_opt:
+      - label:disable
+    sysctls:
+      net.ipv4.conf.all.src_valid_mark: 1
+    ports:
+      - "8080:8080"       # qBittorrent Web UI
+      - "6881:6881"       # Torrent incoming traffic (TCP)
+      - "6881:6881/udp"   # Torrent incoming traffic (UDP)
+    environment:
+      - VPN_SERVICE_PROVIDER=${VPN_SERVICE_PROVIDER:-mullvad}
+      - VPN_TYPE=${VPN_TYPE:-wireguard}
+      - WIREGUARD_PRIVATE_KEY=${WIREGUARD_PRIVATE_KEY}
+      - WIREGUARD_ADDRESSES=${WIREGUARD_ADDRESSES}
+      - FIREWALL_OUTBOUND_SUBNETS=${FIREWALL_OUTBOUND_SUBNETS}
+    restart: unless-stopped
 
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:latest
+    container_name: qbittorrent
+    network_mode: "container:gluetun"
+    depends_on:
+      gluetun:
+        condition: service_healthy
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-America/Chicago}
+      - WEBUI_PORT=8080
+    volumes:
+      - ./config:/config
+      - ${MEDIA_STORAGE_PATH}:/downloads
+    restart: unless-stopped
+
+  jellyfin:
+    image: jellyfin/jellyfin:latest
+    container_name: jellyfin
+    network_mode: host
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-America/Chicago}
+    volumes:
+      - /opt/jellyfin/config:/config
+      - /opt/jellyfin/cache:/cache
+      - ${MEDIA_STORAGE_PATH}:/media
+    devices:
+      - /dev/dri:/dev/dri
+    restart: unless-stopped
+
+media-stack/.env.example:
+
+PUID=1000
+PGID=1000
+TZ=America/Chicago
+MEDIA_STORAGE_PATH=/mnt/storage/downloads
+
+# WireGuard / Gluetun Configuration
+VPN_SERVICE_PROVIDER=mullvad
+VPN_TYPE=wireguard
+WIREGUARD_PRIVATE_KEY=your_wireguard_private_key_here
+WIREGUARD_ADDRESSES=10.x.x.x/32
+FIREWALL_OUTBOUND_SUBNETS=192.168.1.0/24

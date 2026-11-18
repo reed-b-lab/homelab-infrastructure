@@ -6,6 +6,14 @@ Documentation, Docker Compose stacks, and KVM/libvirt configurations for my self
 
 ## Architecture Overview
 
+## Hardware & Host Specs
+* **CPU:** Intel Core i5-9500 (6 cores / 6 threads @ 3.00 GHz, VT-x & VT-d enabled for KVM virtualization)
+* **iGPU / Transcoding:** Intel UHD Graphics 630 (passed into Jellyfin via `/dev/dri` for Intel Quick Sync hardware transcoding)
+* **Memory:** 32 GB DDR4 (host + Docker services consume ~5 GB idle, leaving ~26 GB headroom for concurrent KVM guest VMs)
+* **Storage:**
+  * **Primary OS & VM Storage:** 500 GB NVMe SSD (`MSI M390`) hosting Debian, `/opt` container configs, and `/var/lib/libvirt/images`
+  * **Bulk Media & Downloads:** 1 TB SATA HDD (`HGST HTS721010A9E630`) mounted at `/mnt/storage`
+* **Networking:** Gigabit Ethernet with Linux virtual bridges (`virbr0` NAT & `virbr1` isolated lab)
 * **Host OS:** Debian Linux running Docker Engine and KVM/QEMU (`libvirt`).
 * **Network & DNS (`pihole/`):** Containerized Pi-hole providing network-wide DNS filtering and local DNS resolution.
 * **VPN-Isolated Media Stack (`media-stack/`):**
